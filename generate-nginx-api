@@ -1,0 +1,44 @@
+#!/bin/bash
+
+SCRIPT_NAME=$(basename "$0")
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Execute como root."
+  exit
+fi
+
+if [[ "$1" = "" ]] || [[ "$2" = "" ]]; then
+  echo "Parâmetros incorretos."
+  echo
+  echo "Exemplo: $SCRIPT_NAME <ip/url> <port>"
+  exit
+fi
+
+URL=$1
+API_PORT=$2
+NGINX_PATH="/etc/nginx/sites-enabled/"
+FILE=$NGINX_PATH$URL
+
+if [[ ! -d $NGINX_PATH ]]; then
+  echo "Diretório do NGINX não encontrado."
+  exit
+fi
+
+if [[ -f $FILE ]]; then
+  sudo rm -rm $FILE
+fi
+
+sudo touch $FILE
+sudo echo "server {" >> $FILE
+sudo echo "	server_name $URL;" >> $FILE
+sudo echo "	location / {" >> $FILE
+sudo echo "    	proxy_pass http://localhost:$API_PORT;" >> $FILE
+sudo echo "    	proxy_http_version 1.1;" >> $FILE
+sudo echo '    	proxy_set_header Upgrade $http_upgrade;' >> $FILE
+sudo echo "    	proxy_set_header Connection 'upgrade';" >> $FILE
+sudo echo '    	proxy_set_header Host $host;' >> $FILE
+sudo echo '    	proxy_cache_bypass $http_upgrade;' >> $FILE
+sudo echo "	}" >> $FILE
+sudo echo "}" >> $FILE
+
+sudo service nginx restart 

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+SCRIPT_NAME=$(basename "$0")
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Execute como root."
+  echo
+  echo "Exemplo: $SCRIPT_NAME <ip/url> <static_path>"
+  exit
+fi
+
+if [[ "$1" = "" ]] || [[ "$2" = "" ]]; then
+  echo "Parâmetros incorretos."
+  echo
+  echo "Exemplo: $SCRIPT_NAME <ip/url> <static_path>"
+  exit
+fi
+
+URL=$1
+STATIC_DIR=$2
+NGINX_PATH="/etc/nginx/sites-enabled/"
+FILE=$NGINX_PATH$URL
+
+if [[ ! -d $NGINX_PATH ]]; then
+  echo "Diretório do NGINX não encontrado."
+  exit
+fi
+
+if [[ -f $FILE ]]; then
+  sudo rm -rm $FILE
+fi
+
+sudo touch $FILE
+sudo echo "server {" >> $FILE
+sudo echo "	root $STATIC_DIR;" >> $FILE
+sudo echo "	index index.html index.htm index.nginx-debian.html;" >> $FILE
+sudo echo "	server_name $URL;" >> $FILE
+sudo echo "	location / {" >> $FILE
+sudo echo '		try_files $uri $uri/ =404;' >> $FILE
+sudo echo "	}" >> $FILE
+sudo echo "}" >> $FILE
